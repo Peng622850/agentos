@@ -7,3 +7,4 @@ redis
 httpx
 python-dotenv
 chromadb
+aiofiles
