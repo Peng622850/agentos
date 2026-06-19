@@ -6,4 +6,5 @@ class AgentState(TypedDict):
     plan: str
     result: str
     score: float
+    error_type: str
     messages: list

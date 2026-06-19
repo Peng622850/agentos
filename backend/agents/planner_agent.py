@@ -1,5 +1,6 @@
 from langchain_openai import ChatOpenAI
 from agents.state import AgentState
+from eval.flywheel import get_current_prompt
 import os
 
 llm = ChatOpenAI(
@@ -9,7 +10,8 @@ llm = ChatOpenAI(
 )
 
 async def planner_node(state: AgentState) -> AgentState:
-    prompt = f"你是任务规划师。用户需求：{state['user_input']}\n请拆解成具体执行步骤。"
+    prompt_template = get_current_prompt()
+    prompt = prompt_template.format(user_input=state['user_input'])
     response = await llm.ainvoke(prompt)
     state["plan"] = response.content
     return state
