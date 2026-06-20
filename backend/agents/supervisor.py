@@ -1,7 +1,8 @@
 import json
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
-from typing import TypedDict, AsyncGenerator
+from typing import AsyncGenerator
+from agents.state import AgentState
 from agents.planner_agent import planner_node
 from agents.action_agent import action_node
 from agents.critic_agent import critic_node
@@ -14,8 +15,6 @@ llm = ChatOpenAI(
     base_url=os.getenv("BASE_URL"),
     model=os.getenv("MODEL_NAME"),
 )
-
-from agents.state import AgentState
 
 def build_graph():
     g = StateGraph(AgentState)
@@ -43,9 +42,16 @@ class Supervisor:
             "plan": "",
             "result": "",
             "score": 0.0,
+            "error_type": "none",
             "messages": self.memory.get_history(),
+            "tracer": self.tracer,
         }
         async for event in graph.astream(state):
-            chunk = json.dumps(event, ensure_ascii=False)
+            # 序列化前去掉tracer对象
+            serializable = {}
+            for node_name, node_state in event.items():
+                clean = {k: v for k, v in node_state.items() if k != "tracer"}
+                serializable[node_name] = clean
+            chunk = json.dumps(serializable, ensure_ascii=False)
             yield f"data: {chunk}\n\n"
         self.memory.save(user_input, state.get("result", ""))

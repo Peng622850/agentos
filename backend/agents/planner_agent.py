@@ -10,8 +10,15 @@ llm = ChatOpenAI(
 )
 
 async def planner_node(state: AgentState) -> AgentState:
+    tracer = state.get("tracer")
+    start = tracer.start_span("planner") if tracer else None
+
     prompt_template = get_current_prompt()
     prompt = prompt_template.format(user_input=state['user_input'])
     response = await llm.ainvoke(prompt)
     state["plan"] = response.content
+
+    if tracer and start:
+        tracer.end_span("planner", start, prompt, state["plan"])
+
     return state

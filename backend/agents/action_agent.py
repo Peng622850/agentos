@@ -19,6 +19,9 @@ tools = [search]
 llm_with_tools = llm.bind_tools(tools)
 
 async def action_node(state: AgentState) -> AgentState:
+    tracer = state.get("tracer")
+    start = tracer.start_span("action") if tracer else None
+
     response = await llm_with_tools.ainvoke(
         f"用户需求：{state['user_input']}\n计划：{state['plan']}\n请完成任务，需要搜索时使用search工具。"
     )
@@ -27,12 +30,15 @@ async def action_node(state: AgentState) -> AgentState:
         for tc in response.tool_calls:
             if tc["name"] == "search":
                 raw = await web_search(tc["args"]["query"])
-                # 让LLM基于搜索结果用中文整理回答
                 summary = await llm.ainvoke(
                     f"根据以下搜索结果，用中文详细回答用户问题：{state['user_input']}\n\n搜索结果：{raw}"
                 )
                 state["result"] = summary.content
+                if tracer and start:
+                    tracer.end_span("action", start, state["plan"], state["result"])
                 return state
 
     state["result"] = response.content
+    if tracer and start:
+        tracer.end_span("action", start, state["plan"], state["result"])
     return state

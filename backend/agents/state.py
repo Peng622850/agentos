@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import TypedDict, Any
 
 class AgentState(TypedDict):
     session_id: str
@@ -8,3 +8,4 @@ class AgentState(TypedDict):
     score: float
     error_type: str
     messages: list
+    tracer: Any
